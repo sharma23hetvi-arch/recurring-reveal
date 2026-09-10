@@ -1,24 +1,53 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Recurring Spend Detector — Find every subscription in your statement" },
+      {
+        name: "description",
+        content:
+          "Upload your HDFC bank statement and see every recurring payment — subscriptions, auto-debits, SIPs, recharges — and what they cost you per year.",
+      },
+      {
+        property: "og:title",
+        content: "Recurring Spend Detector — Find every subscription in your statement",
+      },
+      {
+        property: "og:description",
+        content:
+          "Upload your HDFC bank statement and see every recurring payment and what they cost you per year.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-4 py-16">
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
+          How much do your subscriptions really cost you?
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
+          Upload your HDFC bank statement and we'll find every recurring payment —
+          subscriptions, auto-debits, SIPs, phone recharges — and show you the total
+          per year. The ₹119 and ₹649 charges add up.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button asChild size="lg">
+            <Link to="/login">Get started</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/login">Log in</Link>
+          </Button>
+        </div>
+        <p className="mt-6 text-xs text-muted-foreground">
+          Your statement data is private and only visible to you.
+        </p>
+      </div>
+    </main>
   );
 }
