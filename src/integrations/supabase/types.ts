@@ -58,7 +58,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_recurring: {
+        Args: never
+        Returns: {
+          annualized: number
+          avg_amount: number
+          avg_gap: number
+          last_seen: string
+          merchant: string
+          n_charges: number
+          status: string
+        }[]
+      }
+      get_rfm: {
+        Args: never
+        Returns: {
+          f: number
+          frequency: number
+          m: number
+          merchant: string
+          monetary: number
+          r: number
+          recency_days: number
+          segment: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
