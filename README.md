@@ -1,62 +1,42 @@
-# Recurring Reveal
+# Recurring Spend Detector
 
-PROJECT CONTEXT — read this and keep it in mind for every future prompt. Do not build anything from this message; just confirm you understand.
+Upload an HDFC Bank statement and find every recurring payment hidden in it — subscriptions, card auto-debits, NACH mandates, SIPs, phone recharges — and see what they cost per year.
 
-App: Recurring Spend Detector
+**Live app:** https://spend-spotter-io.lovable.app
 
-What it does: A user uploads their bank statement, and the app finds every recurring payment hidden in it (subscriptions, auto-debits, SIPs, phone recharges) and shows how much they spend on them per year. Many people underestimate this number because small charges like ₹119 or ₹649 are spread across UPI, card auto-debits, and NACH mandates.
+## Why
 
-Target user: Indian students and young professionals using UPI and cards, who have lost track of what they're subscribed to.
+Small recurring charges (₹119 here, ₹649 there) are spread across UPI, card standing instructions, and NACH mandates, so they're easy to lose track of. The app surfaces one number: **₹X per year on recurring payments**.
 
-The core insight shown to the user: "You spend ₹X per year on recurring payments" — this one number is the heart of the app and should be the most prominent thing on the results page.
+## Architecture
 
-V1 scope (do not expand beyond this):
+- **Frontend:** React (TanStack Router), built with Lovable
+- **Backend:** PostgreSQL + Auth via Lovable Cloud (Supabase-based), with row-level security so each user only sees their own transactions
+- **Parsing:** `src/lib/hdfcParser.ts` — finds the header row in HDFC exports (CSV/XLS), parses DD/MM/YY dates and comma-formatted amounts, and normalizes merchant names from UPI, card standing-instruction, NACH, and POS narrations. Uploads are idempotent via a unique constraint.
+- **Detection:** `get_recurring()` (in `supabase/migrations/`) uses `LAG()` over merchant partitions to measure the gap between charges, then keeps merchants with regular ~monthly gaps, low gap variance, and stable amounts. "Active" vs "lapsed" is measured against the statement's last date, not today's date.
+- **Segmentation:** `get_rfm()` applies RFM scoring with `NTILE(4)` to merchants rather than customers, since a single user's statement has no customer base to segment.
+- **Results page:** `src/routes/_authenticated/results.tsx` calls both functions via `supabase.rpc()`; no analysis logic lives in the frontend.
 
-- One bank only: HDFC Bank statement exports (CSV/XLS).
+## Key files
 
-- Email/password login via Supabase Auth.
+| Path | Contents |
+|---|---|
+| `src/lib/hdfcParser.ts` | Statement parser, merchant normalizer, upload |
+| `supabase/migrations/` | Table, RLS policy, recurring detection and RFM functions |
+| `src/routes/_authenticated/upload.tsx` | Upload flow |
+| `src/routes/_authenticated/results.tsx` | Results dashboard |
+| `data/` | Synthetic test statement and answer key |
 
-- Upload → parse → store in Supabase → show results.
+## Validation
 
-- No bank account linking, no payments, no notifications, no mobile app, no AI features yet.
+Tested on a **synthetic** HDFC-format statement (648 transactions over 12 months) with planted recurring payments; `data/SYNTHETIC_answer_key.csv` lists what the detector should find. Parser verified: 648 rows parsed, 3 non-data rows skipped, and re-uploading the same file does not create duplicates.
 
-Architecture rules:
+## Status
 
-- Supabase is the backend. The `transactions` table already exists with row-level security. Never create, alter, or migrate tables unless I explicitly ask.
+- [x] Auth, HDFC parsing, storage
+- [x] Recurring detection and RFM functions in PostgreSQL
+- [x] Results dashboard
+- [ ] Validation on a real statement
+- [ ] Claude API layer for categorizing unmatched merchants
 
-- Parsing logic lives in src/lib/hdfcParser.ts, which I will provide. Never rewrite it.
-
-- Detection and segmentation logic lives in PostgreSQL functions (get_recurring, get_rfm). The frontend only calls them via supabase.rpc() and displays results. Never reimplement analysis logic in the frontend.
-
-Design:
-
-- Clean, minimal, trustworthy — like a fintech app, not a flashy dashboard.
-
-- Money always in ₹ with Indian number formatting (₹1,23,456).
-
-- Neutral background, one accent color, clear typography, generous spacing.
-
-- Works on both desktop and mobile widths.
-
-Current data: the demo uses a synthetic HDFC-format test statement with planted subscriptions. Never present it as real user data.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/cebcdd5b-96fd-4266-9971-9ddbf0dec9ea).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+V1 supports HDFC Bank only.
